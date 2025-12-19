@@ -4,6 +4,7 @@ import { authMiddleware } from '../../core/middleware/authMiddleware.js';
 import { adminMiddleware } from '../../core/middleware/adminMiddleware.js';
 import { validate } from '../../core/middleware/validate.js';
 import * as productController from './product.controller.js';
+import upload from '../../core/middleware/upload.js';
 
 const router = express.Router();
 
@@ -14,10 +15,14 @@ router.post(
   '/',
   authMiddleware,
   adminMiddleware,
+  upload.single('image'),
   [
     body('name').notEmpty(),
     body('description').notEmpty(),
-    body('price').isFloat({ min: 0 }),
+    body('price')
+      .notEmpty()
+      .isFloat({ min: 0 })
+      .toFloat(),
   ],
   validate,
   productController.createProduct
@@ -27,7 +32,13 @@ router.put(
   '/:id',
   authMiddleware,
   adminMiddleware,
-  [body('price').optional().isFloat({ min: 0 })],
+  upload.single('image'),
+  [
+    body('price')
+      .optional()
+      .isFloat({ min: 0 })
+      .toFloat(),
+  ],
   validate,
   productController.updateProduct
 );

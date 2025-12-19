@@ -16,13 +16,22 @@ export default function ProductCard({ product }) {
     addToCart(product, 1);
   };
 
+  console.log('IMAGE FIELD:', product.image);
+  console.log('FULL PRODUCT:', product);
+
   return (
     <div style={{ backgroundColor: '#fff', borderRadius: '0.5rem', padding: '1rem', display: 'flex', flexDirection: 'column' }}>
-      {product.images && product.images[0] && (
+      {product.image && (
         <img
-          src={product.images[0]}
+          src={`http://localhost:5000${product.image}`}
           alt={product.name}
-          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '0.5rem', marginBottom: '0.75rem' }}
+          style={{
+            width: '100%',
+            height: '180px',
+            objectFit: 'cover',
+            borderRadius: '0.5rem',
+            marginBottom: '0.75rem'
+          }}
         />
       )}
       <Link to={`/products/${product._id}`} style={{ fontWeight: 600, marginBottom: '0.5rem' }}>

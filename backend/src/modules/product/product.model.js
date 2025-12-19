@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     category: { type: String, index: true },
     brand: { type: String },
-    images: [{ type: String }],
+    image: { type: String },
     stock: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
   },
@@ -15,5 +15,3 @@ const productSchema = new mongoose.Schema(
 );
 
 export const Product = mongoose.model('Product', productSchema);
-
-

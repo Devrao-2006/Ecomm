@@ -6,7 +6,8 @@ const emptyForm = {
   description: '',
   price: '',
   category: '',
-  brand: ''
+  brand: '',
+  image: null
 };
 
 export default function AdminDashboard() {
@@ -25,21 +26,38 @@ export default function AdminDashboard() {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, files } = e.target;
+    if (name === 'image') {
+      setForm({ ...form, image: files[0] });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     try {
-      const payload = {
-        ...form,
-        price: Number(form.price)
-      };
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('description', form.description);
+      formData.append('price', Number(form.price));
+      formData.append('category', form.category);
+      formData.append('brand', form.brand);
+      formData.append('stock', -1); // default stock to -1
+      if (form.image) {
+        formData.append('image', form.image);
+      }
       if (editingId) {
-        await api.put(`/products/${editingId}`, payload);
+        await api.put(`/products/${editingId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       } else {
-        await api.post('/products', payload);
+        await api.post('/products', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       }
       setForm(emptyForm);
       setEditingId(null);
@@ -56,7 +74,9 @@ export default function AdminDashboard() {
       description: product.description,
       price: String(product.price),
       category: product.category || '',
-      brand: product.brand || ''
+      brand: product.brand || '',
+      image: null,
+      stock: product.stock
     });
   };
 
@@ -102,6 +122,17 @@ export default function AdminDashboard() {
             style={{ padding: '0.5rem' }}
           />
           <input
+            name="stock"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="stock"
+            value={form.stock}
+            onChange={handleChange}
+            required
+            style={{ padding: '0.5rem' }}
+          />
+          <input
             name="category"
             placeholder="Category"
             value={form.category}
@@ -112,6 +143,13 @@ export default function AdminDashboard() {
             name="brand"
             placeholder="Brand"
             value={form.brand}
+            onChange={handleChange}
+            style={{ padding: '0.5rem' }}
+          />
+          <input
+            type="file"
+            name="image"
+            accept="image/*"
             onChange={handleChange}
             style={{ padding: '0.5rem' }}
           />

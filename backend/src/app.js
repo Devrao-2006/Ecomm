@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 
 import { connectMongo } from './config/db.mongo.js';
 import { connectPostgres } from './config/db.postgres.js';
@@ -16,7 +17,6 @@ import productRoutes from './modules/product/product.routes.js';
 import cartRoutes from './modules/cart/cart.routes.js';
 import orderRoutes from './modules/order/order.routes.js';
 import paymentRoutes from './modules/payment/payment.routes.js';
-
 
 const app = express();
 
@@ -32,6 +32,7 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(cors());
 
 // Rate limiting
 
@@ -48,6 +49,16 @@ app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
+// app.use('/uploads', express.static('uploads'));
+const __dirname = path.resolve();
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, 'uploads'), {
+    setHeaders: (res) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
+  })
+);
 
 // Centralized error handler
 app.use(errorHandler);
@@ -61,4 +72,3 @@ export async function initApp() {
 }
 
 export default app;
-
