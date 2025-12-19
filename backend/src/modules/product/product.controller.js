@@ -56,8 +56,18 @@ export async function getProduct(req, res, next) {
 
 export async function createProduct(req, res, next) {
   try {
-    const data = req.body;
-    const product = await Product.create(data);
+    const { name, description, price, category, brand } = req.body;
+
+    const product = new Product({
+      name,
+      description,
+      price,
+      category,
+      brand,
+      image: req.file ? `/uploads/${req.file.filename}` : undefined
+    });
+
+    await product.save();
     res.status(201).json({ success: true, product });
   } catch (err) {
     next(err);
@@ -67,7 +77,17 @@ export async function createProduct(req, res, next) {
 export async function updateProduct(req, res, next) {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const { name, description, price, category, brand } = req.body;
+    const updates = {
+      name,
+      description,
+      price,
+      category,
+      brand
+    };
+    if (req.file) {
+      updates.image = `/uploads/${req.file.filename}`;
+    }
     const product = await Product.findByIdAndUpdate(id, updates, { new: true });
     if (!product) {
       throw new AppError('Product not found', 404);
@@ -90,5 +110,3 @@ export async function deleteProduct(req, res, next) {
     next(err);
   }
 }
-
-
