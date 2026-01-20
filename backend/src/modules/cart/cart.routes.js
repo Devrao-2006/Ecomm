@@ -8,4 +8,9 @@ router.get('/', authMiddleware, cartController.getCart);
 router.post('/', authMiddleware, cartController.setCart);
 router.delete('/', authMiddleware, cartController.clearCart);
 
+// Individual item operations
+router.post('/items', authMiddleware, cartController.addItem);
+router.put('/:itemId', authMiddleware, cartController.updateItemQuantity);
+router.delete('/:itemId', authMiddleware, cartController.removeItem);
+
 export default router;

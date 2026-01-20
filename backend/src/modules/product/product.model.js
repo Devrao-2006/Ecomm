@@ -8,6 +8,7 @@ const productSchema = new mongoose.Schema(
     category: { type: String, index: true },
     brand: { type: String },
     images: [{ type: String }],
+    imageUrl: { type: String },
     stock: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
   },
@@ -15,5 +16,3 @@ const productSchema = new mongoose.Schema(
 );
 
 export const Product = mongoose.model('Product', productSchema);
-
-

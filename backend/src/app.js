@@ -61,4 +61,3 @@ export async function initApp() {
 }
 
 export default app;
-
