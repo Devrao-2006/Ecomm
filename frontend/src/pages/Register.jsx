@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+<<<<<<< HEAD
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
@@ -68,11 +69,37 @@ export default function Register() {
       setErrors({
         general: err.response?.data?.message || 'Registration failed. Please try again.'
       });
+=======
+import { useNavigate, Link } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
+import api from '../api/axios';
+
+export default function Register() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await register(name, email, password);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed');
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< HEAD
   return (
     <div className="min-h-screen flex items-center justify-center py-12 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="page-container max-w-[300px] w-full px-4">
@@ -245,6 +272,79 @@ export default function Register() {
           </div>
         </div>
       </div>
+=======
+  const handleGoogleRegister = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const res = await api.get('/auth/google/url');
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        setError('Google sign-up is not configured.');
+        setGoogleLoading(false);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to start Google sign-up');
+      setGoogleLoading(false);
+    }
+  };
+
+  return (
+    <div className="container" style={{ maxWidth: '440px', marginTop: '2.5rem' }}>
+      <h2 style={{ marginBottom: '0.5rem' }}>Create an account</h2>
+      <p style={{ marginBottom: '1.25rem', color: '#4b5563' }}>Checkout faster, view your orders, and manage your cart across devices.</p>
+      {error && <div style={{ color: 'red', marginBottom: '0.75rem' }}>{error}</div>}
+      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <div>
+          <label htmlFor="name">Name</label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            style={{ width: '100%', padding: '0.6rem', marginTop: '0.25rem', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}
+          />
+        </div>
+        <div>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{ width: '100%', padding: '0.6rem', marginTop: '0.25rem', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}
+          />
+        </div>
+        <div>
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{ width: '100%', padding: '0.6rem', marginTop: '0.25rem', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}
+          />
+        </div>
+        <button type="submit" className="btn full" disabled={loading}>
+          {loading ? 'Registering...' : 'Register'}
+        </button>
+      </form>
+      <div style={{ display: 'flex', alignItems: 'center', margin: '0.75rem 0' }}>
+        <div style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }} />
+        <span style={{ margin: '0 0.75rem', fontSize: '0.8rem', color: '#6b7280' }}>OR</span>
+        <div style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }} />
+      </div>
+      <button type="button" className="btn full google" onClick={handleGoogleRegister} disabled={googleLoading}>
+        {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+      </button>
+      <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+        Already have an account? <Link to="/login">Login</Link>
+      </p>
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     </div>
   );
 }

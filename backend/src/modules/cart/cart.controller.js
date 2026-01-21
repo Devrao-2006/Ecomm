@@ -4,7 +4,11 @@ import { Cart } from './cart.model.js';
 export async function getCart(req, res, next) {
   try {
     const userId = new mongoose.Types.ObjectId(req.user.id);
+<<<<<<< HEAD
     const cartDoc = await Cart.findOne({ user: userId }).populate('items.productId');
+=======
+    const cartDoc = await Cart.findOne({ user: userId });
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     const cart = cartDoc || { user: userId, items: [] };
     res.json({ success: true, cart: { items: cart.items } });
   } catch (err) {
@@ -12,6 +16,7 @@ export async function getCart(req, res, next) {
   }
 }
 
+<<<<<<< HEAD
 export async function addItem(req, res, next) {
   try {
     const userId = new mongoose.Types.ObjectId(req.user.id);
@@ -109,6 +114,8 @@ export async function removeItem(req, res, next) {
   }
 }
 
+=======
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 export async function setCart(req, res, next) {
   try {
     const userId = new mongoose.Types.ObjectId(req.user.id);

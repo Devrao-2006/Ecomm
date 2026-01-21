@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+<<<<<<< HEAD
 import { useCart } from '../context/CartContext';
 import api from '../api/axios';
 import { CheckCircle, CreditCard, MapPin, Loader, ArrowRight } from 'lucide-react';
@@ -25,10 +26,17 @@ const CARD_ELEMENT_OPTIONS = {
     },
   },
 };
+=======
+import useCart from '../hooks/useCart';
+import api from '../api/axios';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 
 function CheckoutForm() {
   const stripe = useStripe();
   const elements = useElements();
+<<<<<<< HEAD
   const { items, cartTotal, clearCart } = useCart();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,10 +72,25 @@ function CheckoutForm() {
 
     try {
       const intentRes = await api.post('/payments/intent', { amount: cartTotal, currency: 'usd' });
+=======
+  const { items, total, clearCart } = useCart();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setError('');
+    setLoading(true);
+    try {
+      const intentRes = await api.post('/payments/intent', { amount: total, currency: 'usd' });
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
       const { clientSecret, paymentRecordId, paymentIntentId } = intentRes.data;
 
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
+<<<<<<< HEAD
           card: elements.getElement(CardElement),
           billing_details: {
             name: address.name,
@@ -77,21 +100,38 @@ function CheckoutForm() {
               postal_code: address.zip
             }
           }
+=======
+          card: elements.getElement(CardElement)
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
         }
       });
 
       if (result.error) {
+<<<<<<< HEAD
         throw new Error(result.error.message);
+=======
+        setError(result.error.message || 'Payment failed');
+        setLoading(false);
+        return;
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
       }
 
       await api.post('/payments/confirm', { paymentIntentId, paymentRecordId });
       await api.post('/orders', {
         items: items.map((i) => ({
+<<<<<<< HEAD
           product: i.id,
           quantity: i.quantity,
           price: i.price
         })),
         totalAmount: cartTotal,
+=======
+          product: i.productId,
+          quantity: i.quantity,
+          price: i.price
+        })),
+        totalAmount: total,
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
         paymentId: paymentIntentId,
         paymentRecordId
       });
@@ -99,6 +139,7 @@ function CheckoutForm() {
       await clearCart();
       setSuccess(true);
     } catch (err) {
+<<<<<<< HEAD
       console.error(err);
       if (err.message === "Network Error" || err.response?.status === 404) {
         setSuccess(true);
@@ -106,6 +147,9 @@ function CheckoutForm() {
       } else {
         setError(err.message || 'Payment failed');
       }
+=======
+      setError(err.response?.data?.message || 'Payment error');
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     } finally {
       setLoading(false);
     }
@@ -113,6 +157,7 @@ function CheckoutForm() {
 
   if (success) {
     return (
+<<<<<<< HEAD
       <div className="text-center py-24">
         <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 animate-fade-in">
           <CheckCircle className="w-12 h-12 text-green-600" />
@@ -124,10 +169,16 @@ function CheckoutForm() {
         <button onClick={() => navigate('/')} className="btn btn-primary btn-lg">
           Continue Shopping
         </button>
+=======
+      <div>
+        <h2>Payment successful</h2>
+        <p>Your order has been placed.</p>
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
       </div>
     );
   }
 
+<<<<<<< HEAD
   const subtotal = cartTotal || 0;
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
@@ -290,11 +341,26 @@ function CheckoutForm() {
           </button>
         </div>
       </div>
+=======
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
+      <div>
+        <label>Card details</label>
+        <div style={{ padding: '0.75rem', backgroundColor: '#fff', borderRadius: '0.5rem' }}>
+          <CardElement />
+        </div>
+      </div>
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+      <button type="submit" className="btn full" disabled={!stripe || loading}>
+        {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+      </button>
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     </form>
   );
 }
 
 export default function Checkout() {
+<<<<<<< HEAD
   const { items } = useCart();
   const navigate = useNavigate();
 
@@ -310,11 +376,21 @@ export default function Checkout() {
             </button>
           </div>
         </div>
+=======
+  const { items, total } = useCart();
+
+  if (items.length === 0) {
+    return (
+      <div className="container" style={{ paddingTop: '1.5rem' }}>
+        <h2>Checkout</h2>
+        <p>Your cart is empty.</p>
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
       </div>
     );
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-white">
       <div className="page-container py-12">
         <h1 className="text-4xl font-bold mb-8 text-center">Checkout</h1>
@@ -322,6 +398,14 @@ export default function Checkout() {
           <CheckoutForm />
         </Elements>
       </div>
+=======
+    <div className="container" style={{ paddingTop: '1.5rem', maxWidth: '600px' }}>
+      <h2 style={{ marginBottom: '1rem' }}>Checkout</h2>
+      <p style={{ marginBottom: '0.5rem' }}>Total: ${total.toFixed(2)}</p>
+      <Elements stripe={stripePromise}>
+        <CheckoutForm />
+      </Elements>
+>>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     </div>
   );
 }
