@@ -11,10 +11,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import AdminDashboard from './pages/AdminDashboard';
-<<<<<<< HEAD
 import NotFound from './pages/NotFound';
-=======
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -60,10 +57,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-<<<<<<< HEAD
           <Route path="*" element={<NotFound />} />
-=======
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
         </Routes>
       </main>
       <Footer />

@@ -1,5 +1,4 @@
 import React from 'react';
-<<<<<<< HEAD
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-react';
 
@@ -129,14 +128,6 @@ export default function Footer() {
             </div>
           </div>
         </div>
-=======
-
-export default function Footer() {
-  return (
-    <footer style={{ marginTop: '2rem', padding: '1rem 0', backgroundColor: '#111827', color: '#9ca3af' }}>
-      <div className="container" style={{ textAlign: 'center', fontSize: '0.9rem' }}>
-        <div>Ecomm Store &copy; {new Date().getFullYear()}</div>
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
       </div>
     </footer>
   );

@@ -11,11 +11,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       }
-<<<<<<< HEAD
     },
     allowedHosts: ['localhost', '----.ngrok-free.dev']
-=======
-    }
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
   }
 });
