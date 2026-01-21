@@ -1,8 +1,5 @@
 import express from 'express';
-<<<<<<< HEAD
 import passport from 'passport';
-=======
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 import { body } from 'express-validator';
 import { validate } from '../../core/middleware/validate.js';
 import * as authController from './auth.controller.js';

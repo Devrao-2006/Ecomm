@@ -4,17 +4,11 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import path from 'path';
-<<<<<<< HEAD
 import passport from 'passport';
 
 import { connectMongo } from './config/db.mongo.js';
 import { connectPostgres } from './config/db.postgres.js';
 import { configureGoogleOAuth } from './config/google.js';
-=======
-
-import { connectMongo } from './config/db.mongo.js';
-import { connectPostgres } from './config/db.postgres.js';
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 import { errorHandler } from './core/errors/errorHandler.js';
 import { rateLimiter } from './core/middleware/rateLimiter.js';
 import { logger } from './core/utils/logger.js';

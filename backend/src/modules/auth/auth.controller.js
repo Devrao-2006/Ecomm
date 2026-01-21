@@ -1,22 +1,9 @@
-<<<<<<< HEAD
-=======
-import { google } from 'googleapis';
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 import { AppError } from '../../core/errors/AppError.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../core/utils/jwt.js';
 import { hashPassword, comparePassword } from '../../core/utils/password.js';
 import { User } from '../user/user.model.js';
 import { env } from '../../config/env.js';
 
-<<<<<<< HEAD
-=======
-const oauth2Client = new google.auth.OAuth2(
-  env.googleClientId,
-  env.googleClientSecret,
-  env.googleCallbackUrl
-);
-
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
 function setAuthCookies(res, accessToken, refreshToken) {
   const isProd = env.nodeEnv === 'production';
   res.cookie('accessToken', accessToken, {
@@ -138,79 +125,15 @@ export async function logout(req, res, next) {
   }
 }
 
-<<<<<<< HEAD
 export async function handleGoogleCallback(req, res, next) {
   try {
     const user = req.user;
     if (!user) {
       return res.redirect(`${env.clientUrl}/login?error=auth_failed`);
-=======
-// For SPA, we generate a Google OAuth URL (if using a custom flow), but here we assume
-// frontend hits backend Google auth endpoint; keeping these simple.
-
-export async function getGoogleAuthUrl(req, res, next) {
-  try {
-    if (!env.googleClientId || !env.googleClientSecret || !env.googleCallbackUrl) {
-      throw new AppError('Google OAuth not configured', 500);
-    }
-
-    const url = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      prompt: 'consent',
-      scope: ['openid', 'email', 'profile'],
-    });
-
-    res.status(200).json({
-      success: true,
-      url,
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function googleCallback(req, res, next) {
-  try {
-    const { code } = req.query;
-    if (!code) {
-      throw new AppError('Missing authorization code', 400);
-    }
-
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-
-    if (!tokens.id_token) {
-      throw new AppError('Google did not return an ID token', 500);
-    }
-
-    const ticket = await oauth2Client.verifyIdToken({
-      idToken: tokens.id_token,
-      audience: env.googleClientId,
-    });
-
-    const payload = ticket.getPayload();
-    const email = payload.email;
-    const name = payload.name || payload.email;
-
-    if (!email) {
-      throw new AppError('Google profile has no email', 400);
-    }
-
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = await User.create({
-        name,
-        email,
-        passwordHash: null,
-        provider: 'google',
-        roles: ['user'],
-      });
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
     }
 
     const accessToken = signAccessToken({ userId: user._id, roles: user.roles });
     const refreshToken = signRefreshToken({ userId: user._id });
-<<<<<<< HEAD
     
     user.refreshToken = refreshToken;
     await user.save();
@@ -219,15 +142,6 @@ export async function googleCallback(req, res, next) {
 
     // After successful login via Google, redirect back to frontend
     res.redirect(env.clientUrl || '/');
-=======
-    user.refreshToken = refreshToken;
-    await user.save();
-    setAuthCookies(res, accessToken, refreshToken);
-
-    // After successful login via Google, redirect back to frontend
-    const redirectUrl = env.clientUrl || '/';
-    res.redirect(redirectUrl);
->>>>>>> e8e9bc35347c166c03829b7a59dca062879bb374
   } catch (err) {
     next(err);
   }
