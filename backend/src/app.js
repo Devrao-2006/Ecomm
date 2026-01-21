@@ -4,9 +4,11 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import passport from 'passport';
 
 import { connectMongo } from './config/db.mongo.js';
 import { connectPostgres } from './config/db.postgres.js';
+import { configureGoogleOAuth } from './config/google.js';
 import { errorHandler } from './core/errors/errorHandler.js';
 import { rateLimiter } from './core/middleware/rateLimiter.js';
 import { logger } from './core/utils/logger.js';
@@ -32,8 +34,10 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors());
 
+// Auth & Passport
+app.use(passport.initialize());
+configureGoogleOAuth();
 // Rate limiting
 
 // Healthcheck

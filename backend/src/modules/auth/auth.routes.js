@@ -1,4 +1,5 @@
 import express from 'express';
+import passport from 'passport';
 import { body } from 'express-validator';
 import { validate } from '../../core/middleware/validate.js';
 import * as authController from './auth.controller.js';
@@ -27,7 +28,15 @@ router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authController.logout);
 
 // Google OAuth endpoints
-router.get('/google/url', authController.getGoogleAuthUrl);
-router.get('/google/callback', authController.googleCallback);
+router.get(
+  '/google',
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+);
+
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  authController.handleGoogleCallback
+);
 
 export default router;

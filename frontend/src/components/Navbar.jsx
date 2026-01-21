@@ -25,7 +25,7 @@ export default function Navbar() {
     if (!user) {
       navigate('/login');
     } else {
-      setIsOpen(true);
+      navigate('/cart');
     }
   };
 
@@ -120,8 +120,11 @@ export default function Navbar() {
                   )}
                 </div>
               )}
+            </div>
 
-              {/* Cart */}
+            {/* Mobile Actions: Cart & Menu */}
+            <div className="flex items-center gap-4">
+              {/* Cart - Visible on all screens */}
               <Link
                 to={user ? "/cart" : "/login"}
                 className="relative btn btn-ghost btn-icon"
@@ -134,16 +137,16 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
-            </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 text-[var(--text-main)] hover:text-[var(--accent)] transition-colors"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              {/* Mobile Menu Button */}
+              <button
+                className="md:hidden p-2 text-[var(--text-main)] hover:text-[var(--accent)] transition-colors"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
 
