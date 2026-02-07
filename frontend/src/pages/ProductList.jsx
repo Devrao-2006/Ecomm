@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import api from '../api/axios';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
 
 export default function ProductList() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -53,6 +55,7 @@ export default function ProductList() {
       await addToCart(product.id || product._id, 1);
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      navigate('/login');
     }
   };
 

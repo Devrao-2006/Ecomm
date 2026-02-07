@@ -8,6 +8,7 @@ import passport from 'passport';
 
 import { connectMongo } from './config/db.mongo.js';
 import { connectPostgres } from './config/db.postgres.js';
+import { initRedis, closeRedis } from './config/redis.js';
 import { configureGoogleOAuth } from './config/google.js';
 import { errorHandler } from './core/errors/errorHandler.js';
 import { rateLimiter } from './core/middleware/rateLimiter.js';
@@ -71,8 +72,15 @@ app.use(errorHandler);
 export async function initApp() {
   await connectMongo();
   await connectPostgres();
+  await initRedis();
   logger.info('Databases connected');
   return app;
+}
+
+// Graceful shutdown handler
+export async function shutdownApp() {
+  await closeRedis();
+  logger.info('Application shutdown complete');
 }
 
 export default app;

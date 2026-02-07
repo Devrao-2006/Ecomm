@@ -41,10 +41,10 @@ export default function ProductDetails() {
         new Promise(resolve => setTimeout(resolve, 1000))
       ]);
       // Show success feedback
-      alert('Added to cart successfully!');
+      // alert('Added to cart successfully!');
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      alert('Failed to add to cart. Please login first.');
+      navigate('/login');
     } finally {
       setAdding(false);
     }
