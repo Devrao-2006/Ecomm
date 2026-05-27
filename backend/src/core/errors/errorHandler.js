@@ -3,11 +3,11 @@ import { logger } from '../utils/logger.js';
 
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(err, req, res, next) {
-  const error = err instanceof AppError ? err : new AppError(err.message || 'Internal Server Error', err.statusCode || 500);
-
-  if (!error.isOperational) {
+  if (!(err instanceof AppError)) {
     logger.error('Unexpected error', err);
   }
+
+  const error = err instanceof AppError ? err : new AppError(err.message || 'Internal Server Error', err.statusCode || 500);
 
   const statusCode = error.statusCode || 500;
 

@@ -12,6 +12,8 @@ import { initRedis, closeRedis } from './config/redis.js';
 import { configureGoogleOAuth } from './config/google.js';
 import { errorHandler } from './core/errors/errorHandler.js';
 import { rateLimiter } from './core/middleware/rateLimiter.js';
+import { authMiddleware } from './core/middleware/authMiddleware.js';
+import { verifiedMiddleware } from './core/middleware/verifiedMiddleware.js';
 import { logger } from './core/utils/logger.js';
 
 import authRoutes from './modules/auth/auth.routes.js';
@@ -20,10 +22,10 @@ import productRoutes from './modules/product/product.routes.js';
 import cartRoutes from './modules/cart/cart.routes.js';
 import orderRoutes from './modules/order/order.routes.js';
 import paymentRoutes from './modules/payment/payment.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
 
 const app = express();
 
-// Basic security & logging
 app.use(helmet());
 app.use(
   cors({
@@ -36,25 +38,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Auth & Passport
 app.use(passport.initialize());
 configureGoogleOAuth();
-// Rate limiting
 
-// Healthcheck
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API routes
 app.use('/api/auth', authRoutes);
 app.use(rateLimiter);
-app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payments', paymentRoutes);
-// app.use('/uploads', express.static('uploads'));
+app.use('/api/users', userRoutes);
+
+app.use('/api/cart', authMiddleware, verifiedMiddleware, cartRoutes);
+app.use('/api/orders', authMiddleware, verifiedMiddleware, orderRoutes);
+app.use('/api/payments', authMiddleware, verifiedMiddleware, paymentRoutes);
+app.use('/api/admin', authMiddleware, adminRoutes);
+
 const __dirname = path.resolve();
 app.use(
   '/uploads',
@@ -65,10 +65,8 @@ app.use(
   })
 );
 
-// Centralized error handler
 app.use(errorHandler);
 
-// Initialize connections (called from server.js)
 export async function initApp() {
   await connectMongo();
   await connectPostgres();
@@ -77,7 +75,6 @@ export async function initApp() {
   return app;
 }
 
-// Graceful shutdown handler
 export async function shutdownApp() {
   await closeRedis();
   logger.info('Application shutdown complete');

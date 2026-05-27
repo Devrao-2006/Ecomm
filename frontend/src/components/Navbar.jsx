@@ -59,7 +59,7 @@ export default function Navbar() {
               >
                 Products
               </Link>
-              {user?.isAdmin && (
+              {user?.roles?.includes('admin') && (
                 <Link
                   to="/admin"
                   className="text-base font-medium text-[var(--text-main)] hover:text-[var(--accent)] transition-colors"

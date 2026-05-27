@@ -4,13 +4,13 @@ import * as cartController from './cart.controller.js';
 
 const router = express.Router();
 
-router.get('/', authMiddleware, cartController.getCart);
-router.post('/', authMiddleware, cartController.setCart);
-router.delete('/', authMiddleware, cartController.clearCart);
+router.get('/', cartController.getCart);
+router.post('/', cartController.setCart);
+router.delete('/', cartController.clearCart);
 
 // Individual item operations
-router.post('/items', authMiddleware, cartController.addItem);
-router.put('/:itemId', authMiddleware, cartController.updateItemQuantity);
-router.delete('/:itemId', authMiddleware, cartController.removeItem);
+router.post('/items', cartController.addItem);
+router.put('/:itemId', cartController.updateItemQuantity);
+router.delete('/:itemId', cartController.removeItem);
 
 export default router;

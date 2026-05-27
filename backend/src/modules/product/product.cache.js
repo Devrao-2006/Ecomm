@@ -149,12 +149,19 @@ export async function invalidateProductLists() {
 
     try {
         const redis = getRedisClient();
-        // Find all product list cache keys
-        const keys = await redis.keys('product:list:*');
+        let cursor = 0;
+        let deletedCount = 0;
+        do {
+            const result = await redis.scan(cursor, { MATCH: 'product:list:*', COUNT: 100 });
+            cursor = result.cursor;
+            if (result.keys.length > 0) {
+                await redis.del(result.keys);
+                deletedCount += result.keys.length;
+            }
+        } while (cursor !== 0);
 
-        if (keys.length > 0) {
-            await redis.del(keys);
-            logger.debug(`Invalidated ${keys.length} product list cache entries`);
+        if (deletedCount > 0) {
+            logger.debug(`Invalidated ${deletedCount} product list cache entries`);
         }
     } catch (error) {
         logger.error('Error invalidating product list caches:', error);

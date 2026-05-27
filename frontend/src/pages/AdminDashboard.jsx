@@ -34,23 +34,10 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      // Try to fetch stats from backend
-      const [ordersRes, usersRes] = await Promise.allSettled([
-        api.get('/orders'),
-        api.get('/users')
-      ]);
-
-      const orders = ordersRes.status === 'fulfilled' ? ordersRes.value.data : [];
-      const users = usersRes.status === 'fulfilled' ? usersRes.value.data : [];
-
-      const revenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-      setStats(prev => ({
-        ...prev,
-        totalOrders: orders.length || 0,
-        totalRevenue: revenue || 0,
-        totalUsers: users.length || 0
-      }));
+      const res = await api.get('/admin/stats');
+      if (res.data && res.data.success) {
+        setStats(res.data.stats);
+      }
     } catch (error) {
       console.error('Failed to load stats:', error);
     }

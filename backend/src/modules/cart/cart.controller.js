@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Cart } from './cart.model.js';
+import { Product } from '../product/product.model.js';
 
 export async function getCart(req, res, next) {
   try {
@@ -15,11 +16,19 @@ export async function getCart(req, res, next) {
 export async function addItem(req, res, next) {
   try {
     const userId = new mongoose.Types.ObjectId(req.user.id);
-    const { productId, name, price, quantity = 1 } = req.body;
+    const { productId, quantity = 1 } = req.body;
 
-    if (!productId || !name || price === undefined) {
-      return res.status(400).json({ success: false, message: 'productId, name, and price are required' });
+    if (!productId) {
+      return res.status(400).json({ success: false, message: 'productId is required' });
     }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    
+    const price = product.price;
+    const name = product.name;
 
     let cart = await Cart.findOne({ user: userId });
 

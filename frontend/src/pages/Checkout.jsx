@@ -50,12 +50,7 @@ function CheckoutForm() {
     e.preventDefault();
 
     if (!stripe || !elements) {
-      setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
-        setSuccess(true);
-        clearCart();
-      }, 2000);
+      setError('Payment system is not available right now. Please try again later.');
       return;
     }
 
@@ -84,12 +79,11 @@ function CheckoutForm() {
         throw new Error(result.error.message);
       }
 
-      await api.post('/payments/confirm', { paymentIntentId, paymentRecordId });
       await api.post('/orders', {
         items: items.map((i) => ({
-          product: i.id,
-          quantity: i.quantity,
-          price: i.price
+          product: i.productId?._id || i.productId || i._id,
+          quantity: i.quantity || 1,
+          price: i.productId?.price || i.price || 0
         })),
         totalAmount: cartTotal,
         paymentId: paymentIntentId,
@@ -100,12 +94,7 @@ function CheckoutForm() {
       setSuccess(true);
     } catch (err) {
       console.error(err);
-      if (err.message === "Network Error" || err.response?.status === 404) {
-        setSuccess(true);
-        clearCart();
-      } else {
-        setError(err.message || 'Payment failed');
-      }
+      setError(err.response?.data?.message || err.message || 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -226,7 +215,7 @@ function CheckoutForm() {
           {/* Items List */}
           <div className="space-y-4 max-h-80 overflow-y-auto mb-6">
             {items.map(item => (
-              <div key={item.id} className="flex gap-3 items-center pb-4 border-b border-gray-200 last:border-0">
+              <div key={item._id || item.productId?._id} className="flex gap-3 items-center pb-4 border-b border-gray-200 last:border-0">
                 <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                   <img
                     src={item.image || item.imageUrl || 'https://via.placeholder.com/64'}

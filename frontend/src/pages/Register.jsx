@@ -13,6 +13,7 @@ export default function Register() {
     confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -38,8 +39,8 @@ export default function Register() {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -62,8 +63,8 @@ export default function Register() {
     setErrors({});
 
     try {
-      await register(formData.name, formData.email, formData.password);
-      navigate('/');
+      const result = await register(formData.name, formData.email, formData.password);
+      setSuccessMsg(result.message || 'Registration successful. Please check your email to verify your account.');
     } catch (err) {
       setErrors({
         general: err.response?.data?.message || 'Registration failed. Please try again.'
@@ -90,6 +91,14 @@ export default function Register() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-800">{errors.general}</p>
+            </div>
+          )}
+          
+          {/* Success Message */}
+          {successMsg && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-green-800">{successMsg}</p>
             </div>
           )}
 

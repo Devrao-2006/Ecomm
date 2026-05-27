@@ -18,6 +18,8 @@ export async function authMiddleware(req, res, next) {
       roles: user.roles || [],
       email: user.email,
       name: user.name,
+      emailVerified: user.emailVerified ?? false,
+      adminApproved: user.adminApproved ?? true,
     };
     next();
   } catch (err) {

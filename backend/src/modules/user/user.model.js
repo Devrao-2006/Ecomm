@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema(
     provider: { type: String, enum: ['local', 'google'], default: 'local' },
     roles: { type: [String], default: ['user'] },
     refreshToken: { type: String, default: null },
+    emailVerified: { type: Boolean, default: false, index: true },
+    verificationToken: { type: String, default: null }, // hashed
+    verificationTokenExpiresAt: { type: Date, default: null },
+    verificationTokenVersion: { type: Number, default: 0 }, // prevent replay
+    adminApproved: { type: Boolean, default: true }, // defaults true to not block existing accounts
   },
   { timestamps: true }
 );

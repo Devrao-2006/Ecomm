@@ -2,6 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { env } from './env.js';
 import { User } from '../modules/user/user.model.js';
+import { logger } from '../core/utils/logger.js';
 
 export function configureGoogleOAuth() {
   if (!env.googleClientId || !env.googleClientSecret) {
@@ -31,7 +32,16 @@ export function configureGoogleOAuth() {
               passwordHash: null,
               provider: 'google',
               roles: ['user'],
+              emailVerified: true, // Google auto-verifies
+              adminApproved: true,
             });
+            logger.info(`[Google OAuth] New user created and auto-verified: ${email}`);
+          } else if (!user.emailVerified) {
+            user.emailVerified = true; // trust Google validation for existing local account
+            user.verificationToken = null;
+            user.verificationTokenExpiresAt = null;
+            await user.save();
+            logger.info(`[Google OAuth] Existing user auto-verified via Google: ${email}`);
           }
 
           return done(null, user);

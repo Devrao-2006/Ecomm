@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 import { logger } from '../core/utils/logger.js';
+import { env } from './env.js';
 
 let redisClient = null;
 
@@ -8,7 +9,7 @@ let redisClient = null;
  */
 export async function initRedis() {
     try {
-        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+        const redisUrl = env.redisUrl || 'redis://localhost:6379';
 
         redisClient = createClient({
             url: redisUrl,

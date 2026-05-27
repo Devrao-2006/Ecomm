@@ -134,18 +134,16 @@ export default function ProductList() {
           </form>
 
           {/* Category Filter (Desktop & Mobile Expanded) */}
-          {(showFilters || window.innerWidth >= 768) && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <label className="form-label mb-2">Category</label>
-              <input
-                type="text"
-                placeholder="Enter category..."
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="form-input"
-              />
-            </div>
-          )}
+          <div className={`mt-4 pt-4 border-t border-gray-200 ${showFilters ? 'block' : 'hidden md:block'}`}>
+            <label className="form-label mb-2">Category</label>
+            <input
+              type="text"
+              placeholder="Enter category..."
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="form-input"
+            />
+          </div>
 
           {/* Active Filters */}
           {(search || category || sortBy) && (

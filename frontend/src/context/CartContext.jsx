@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useState, useContext } from 'react';
 import api from '../api/axios';
+import { AuthContext } from './AuthContext';
 
 export const CartContext = createContext(null);
 
@@ -7,6 +8,7 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useContext(AuthContext);
 
   // Fetch cart from backend
   const fetchCart = async () => {
@@ -23,10 +25,14 @@ export function CartProvider({ children }) {
     }
   };
 
-  // Load cart on mount
+  // Load cart on mount/auth
   useEffect(() => {
-    fetchCart();
-  }, []);
+    if (user) {
+      fetchCart();
+    } else {
+      setItems([]);
+    }
+  }, [user]);
 
   const addToCart = async (productId, quantity = 1, productData = null) => {
     try {

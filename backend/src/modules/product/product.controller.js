@@ -16,7 +16,8 @@ export async function listProducts(req, res, next) {
 
     const filter = { isActive: true };
     if (search) {
-      filter.name = { $regex: search, $options: 'i' };
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.name = { $regex: escaped, $options: 'i' };
     }
     if (category) {
       filter.category = category;
@@ -84,7 +85,7 @@ export async function createProduct(req, res, next) {
       price,
       category,
       brand,
-      image: req.file ? `/uploads/${req.file.filename}` : undefined
+      imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined
     });
 
     await product.save();
@@ -110,7 +111,7 @@ export async function updateProduct(req, res, next) {
       brand
     };
     if (req.file) {
-      updates.image = `/uploads/${req.file.filename}`;
+      updates.imageUrl = `/uploads/${req.file.filename}`;
     }
     const product = await Product.findByIdAndUpdate(id, updates, { new: true });
     if (!product) {

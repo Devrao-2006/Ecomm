@@ -50,28 +50,17 @@ export default function ProductDetails() {
     }
   };
 
-  const incrementQuantity = async () => {
-    if (changingQty) return;
+  const incrementQuantity = () => {
     if (product && product.stock && quantity < product.stock) {
-      setChangingQty(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
       setQuantity(quantity + 1);
-      setChangingQty(false);
     } else if (!product.stock) {
-      setChangingQty(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
       setQuantity(quantity + 1);
-      setChangingQty(false);
     }
   };
 
-  const decrementQuantity = async () => {
-    if (changingQty) return;
+  const decrementQuantity = () => {
     if (quantity > 1) {
-      setChangingQty(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
       setQuantity(quantity - 1);
-      setChangingQty(false);
     }
   };
 
@@ -213,20 +202,19 @@ export default function ProductDetails() {
                   <div className="flex items-center border border-gray-300 rounded-lg">
                     <button
                       onClick={decrementQuantity}
-                      disabled={changingQty || quantity <= 1}
+                      disabled={quantity <= 1}
                       className="p-3 hover:bg-gray-100 transition-colors disabled:opacity-50"
                       aria-label="Decrease quantity"
                     >
-                      {changingQty ? <Loader className="w-5 h-5 animate-spin" /> : <Minus className="w-5 h-5" />}
+                      <Minus className="w-5 h-5" />
                     </button>
                     <span className="px-6 py-2 font-semibold text-lg">{quantity}</span>
                     <button
                       onClick={incrementQuantity}
-                      disabled={changingQty}
                       className="p-3 hover:bg-gray-100 transition-colors disabled:opacity-50"
                       aria-label="Increase quantity"
                     >
-                      {changingQty ? <Loader className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                      <Plus className="w-5 h-5" />
                     </button>
                   </div>
                   {product.stock && (

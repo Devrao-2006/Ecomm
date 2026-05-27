@@ -46,8 +46,8 @@ export default function Cart() {
   };
 
   const subtotal = cartTotal;
-  const tax = subtotal * 0.1; // 10% tax
-  const shipping = subtotal > 50 ? 0 : 10;
+  const tax = subtotal * 0.08; // 8% tax
+  const shipping = 0;
   const total = subtotal + tax + shipping;
 
   // Check if any items have stock issues
@@ -230,18 +230,13 @@ export default function Cart() {
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[var(--text-muted)]">
-                  <span>Tax (10%)</span>
+                  <span>Tax (8%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-[var(--text-muted)]">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                  <span>Free</span>
                 </div>
-                {shipping > 0 && (
-                  <p className="text-sm text-[var(--accent)]">
-                    Add ${(50 - subtotal).toFixed(2)} more for free shipping!
-                  </p>
-                )}
                 <div className="border-t border-gray-200 pt-3 flex justify-between text-xl font-bold">
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>

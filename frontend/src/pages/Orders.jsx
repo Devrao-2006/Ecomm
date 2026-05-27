@@ -14,8 +14,8 @@ export default function Orders() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/orders');
-      setOrders(res.data || []);
+      const res = await api.get('/orders/me');
+      setOrders(res.data.orders || []);
     } catch (error) {
       console.error('Failed to load orders:', error);
       setOrders([]);
