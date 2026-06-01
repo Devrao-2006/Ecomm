@@ -1,7 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { env } from './env.js';
-import { User } from '../modules/user/user.model.js';
+import { prisma } from './db.prisma.js';
 import { logger } from '../core/utils/logger.js';
 
 export function configureGoogleOAuth() {
@@ -24,23 +24,29 @@ export function configureGoogleOAuth() {
             return done(new Error('Google profile has no email'), null);
           }
 
-          let user = await User.findOne({ email });
+          let user = await prisma.user.findUnique({ where: { email } });
           if (!user) {
-            user = await User.create({
-              name: profile.displayName,
-              email,
-              passwordHash: null,
-              provider: 'google',
-              roles: ['user'],
-              emailVerified: true, // Google auto-verifies
-              adminApproved: true,
+            user = await prisma.user.create({
+              data: {
+                name: profile.displayName,
+                email,
+                passwordHash: null,
+                provider: 'google',
+                roles: ['user'],
+                emailVerified: true,
+                adminApproved: true,
+              }
             });
             logger.info(`[Google OAuth] New user created and auto-verified: ${email}`);
           } else if (!user.emailVerified) {
-            user.emailVerified = true; // trust Google validation for existing local account
-            user.verificationToken = null;
-            user.verificationTokenExpiresAt = null;
-            await user.save();
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                emailVerified: true,
+                verificationToken: null,
+                verificationTokenExpiresAt: null,
+              }
+            });
             logger.info(`[Google OAuth] Existing user auto-verified via Google: ${email}`);
           }
 

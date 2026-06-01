@@ -1,7 +1,7 @@
 import { AppError } from '../../core/errors/AppError.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../core/utils/jwt.js';
 import { hashPassword, comparePassword } from '../../core/utils/password.js';
-import { User } from '../user/user.model.js';
+import { prisma } from '../../config/db.prisma.js';
 import { env } from '../../config/env.js';
 import {
   issueVerificationToken,
@@ -35,7 +35,7 @@ export async function register(req, res, next) {
   try {
     const { name, email, password } = req.body;
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
+    let existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (existing && existing.emailVerified) {
       throw new AppError('Email already in use', 400);
     }
@@ -43,18 +43,24 @@ export async function register(req, res, next) {
     let user = existing;
     if (!user) {
       const passwordHash = await hashPassword(password);
-      user = await User.create({
-        name,
-        email,
-        passwordHash,
-        provider: 'local',
-        roles: ['user'],
-        emailVerified: false,
+      user = await prisma.user.create({
+        data: {
+          name,
+          email: email.toLowerCase(),
+          passwordHash,
+          provider: 'local',
+          roles: ['user'],
+          emailVerified: false,
+        }
       });
     } else {
-      user.name = name;
-      user.passwordHash = await hashPassword(password);
-      await user.save();
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name,
+          passwordHash: await hashPassword(password),
+        }
+      });
     }
 
     await issueVerificationToken(user, clientIp(req), req.headers['user-agent']);
@@ -71,7 +77,7 @@ export async function register(req, res, next) {
 export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() });
+    let user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
     if (!user || !(await comparePassword(password, user.passwordHash))) {
       throw new AppError('Invalid credentials', 401);
@@ -79,7 +85,7 @@ export async function login(req, res, next) {
 
     if (!user.emailVerified) {
       await logVerificationEvent({
-        userId: user._id.toString(),
+        userId: user.id.toString(),
         event: 'login_blocked',
         ip: clientIp(req),
         userAgent: req.headers['user-agent'],
@@ -94,7 +100,7 @@ export async function login(req, res, next) {
 
     if (env.requireAdminApproval && !user.adminApproved) {
       await logVerificationEvent({
-        userId: user._id.toString(),
+        userId: user.id.toString(),
         event: 'login_blocked',
         ip: clientIp(req),
         userAgent: req.headers['user-agent'],
@@ -107,16 +113,18 @@ export async function login(req, res, next) {
       );
     }
 
-    const accessToken = signAccessToken({ userId: user._id, roles: user.roles });
-    const refreshToken = signRefreshToken({ userId: user._id });
-    user.refreshToken = refreshToken;
-    await user.save();
+    const accessToken = signAccessToken({ userId: user.id, roles: user.roles });
+    const refreshToken = signRefreshToken({ userId: user.id });
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken }
+    });
     setAuthCookies(res, accessToken, refreshToken);
 
     res.json({
       success: true,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         roles: user.roles,
@@ -136,7 +144,7 @@ export async function verifyEmail(req, res, next) {
       throw new AppError('Invalid verification link', 400);
     }
 
-    const user = await consumeVerificationToken(
+    let user = await consumeVerificationToken(
       token,
       uid,
       Number(v),
@@ -148,10 +156,12 @@ export async function verifyEmail(req, res, next) {
       return res.redirect(`${env.clientUrl}/login?info=pending_approval`);
     }
 
-    const accessToken = signAccessToken({ userId: user._id, roles: user.roles });
-    const refreshToken = signRefreshToken({ userId: user._id });
-    user.refreshToken = refreshToken;
-    await user.save();
+    const accessToken = signAccessToken({ userId: user.id, roles: user.roles });
+    const refreshToken = signRefreshToken({ userId: user.id });
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken }
+    });
     setAuthCookies(res, accessToken, refreshToken);
 
     res.redirect(`${env.clientUrl || '/'}`);
@@ -165,7 +175,7 @@ export async function resendVerificationHandler(req, res, next) {
   try {
     const { email } = req.body;
     if (email) {
-      await resendVerification(email, clientIp(req), req.headers['user-agent']);
+      await resendVerification(email.toLowerCase(), clientIp(req), req.headers['user-agent']);
     }
     res.status(202).json({
       success: true,
@@ -183,7 +193,7 @@ export async function adminApproveUserHandler(req, res, next) {
     res.json({
       success: true,
       message: `User ${user.email} has been approved.`,
-      user: { id: user._id, email: user.email, adminApproved: user.adminApproved },
+      user: { id: user.id, email: user.email, adminApproved: user.adminApproved },
     });
   } catch (err) {
     next(err);
@@ -196,15 +206,17 @@ export async function refreshToken(req, res, next) {
     if (!token) throw new AppError('Refresh token missing', 401);
 
     const decoded = verifyRefreshToken(token);
-    const user = await User.findById(decoded.userId);
+    let user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user || user.refreshToken !== token) {
       throw new AppError('Invalid refresh token', 401);
     }
 
-    const newAccessToken = signAccessToken({ userId: user._id, roles: user.roles });
-    const newRefreshToken = signRefreshToken({ userId: user._id });
-    user.refreshToken = newRefreshToken;
-    await user.save();
+    const newAccessToken = signAccessToken({ userId: user.id, roles: user.roles });
+    const newRefreshToken = signRefreshToken({ userId: user.id });
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken: newRefreshToken }
+    });
     setAuthCookies(res, newAccessToken, newRefreshToken);
     res.json({ success: true });
   } catch (err) {
@@ -218,11 +230,10 @@ export async function logout(req, res, next) {
     if (token) {
       try {
         const decoded = verifyRefreshToken(token);
-        const user = await User.findById(decoded.userId);
-        if (user) {
-          user.refreshToken = null;
-          await user.save();
-        }
+        await prisma.user.updateMany({
+          where: { id: decoded.userId, refreshToken: token },
+          data: { refreshToken: null }
+        });
       } catch {
         // Ignore invalid token during logout
       }
@@ -239,16 +250,18 @@ export async function logout(req, res, next) {
 
 export async function handleGoogleCallback(req, res, next) {
   try {
-    const user = req.user;
+    let user = req.user;
     if (!user) {
       return res.redirect(`${env.clientUrl}/login?error=auth_failed`);
     }
 
-    const accessToken = signAccessToken({ userId: user._id, roles: user.roles });
-    const refreshToken = signRefreshToken({ userId: user._id });
+    const accessToken = signAccessToken({ userId: user.id, roles: user.roles });
+    const refreshToken = signRefreshToken({ userId: user.id });
 
-    user.refreshToken = refreshToken;
-    await user.save();
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken }
+    });
 
     setAuthCookies(res, accessToken, refreshToken);
     res.redirect(env.clientUrl || '/');

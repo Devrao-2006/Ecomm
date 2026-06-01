@@ -6,8 +6,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import passport from 'passport';
 
-import { connectMongo } from './config/db.mongo.js';
-import { connectPostgres } from './config/db.postgres.js';
+import { connectPrisma, prisma } from './config/db.prisma.js';
 import { initRedis, closeRedis } from './config/redis.js';
 import { configureGoogleOAuth } from './config/google.js';
 import { errorHandler } from './core/errors/errorHandler.js';
@@ -68,8 +67,7 @@ app.use(
 app.use(errorHandler);
 
 export async function initApp() {
-  await connectMongo();
-  await connectPostgres();
+  await connectPrisma();
   await initRedis();
   logger.info('Databases connected');
   return app;
@@ -77,6 +75,7 @@ export async function initApp() {
 
 export async function shutdownApp() {
   await closeRedis();
+  await prisma.$disconnect();
   logger.info('Application shutdown complete');
 }
 

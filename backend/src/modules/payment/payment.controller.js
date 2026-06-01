@@ -1,6 +1,6 @@
 import { stripe } from '../../config/stripe.js';
 import { AppError } from '../../core/errors/AppError.js';
-import { pgPool } from '../../config/db.postgres.js';
+import { prisma } from '../../config/db.prisma.js';
 
 export async function createPaymentIntent(req, res, next) {
   try {
@@ -20,12 +20,17 @@ export async function createPaymentIntent(req, res, next) {
       },
     });
 
-    const insertResult = await pgPool.query(
-      'INSERT INTO payments (user_id, stripe_payment_intent_id, amount, currency, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [req.user.id, intent.id, amount, currency, 'pending']
-    );
+    const paymentRecord = await prisma.payments.create({
+      data: {
+        user_id: req.user.id,
+        stripe_payment_intent_id: intent.id,
+        amount,
+        currency,
+        status: 'pending'
+      }
+    });
 
-    const paymentRecordId = insertResult.rows[0].id;
+    const paymentRecordId = paymentRecord.id;
 
     res.json({
       success: true,

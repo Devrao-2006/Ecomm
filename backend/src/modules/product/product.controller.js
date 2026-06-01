@@ -1,4 +1,4 @@
-import { Product } from './product.model.js';
+import { prisma } from '../../config/db.prisma.js';
 import { AppError } from '../../core/errors/AppError.js';
 import * as productCache from './product.cache.js';
 
@@ -8,27 +8,27 @@ export async function listProducts(req, res, next) {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 12;
 
-    // Try to get from cache first
     const cachedData = await productCache.getProductList(req.query);
     if (cachedData) {
       return res.json({ success: true, ...cachedData });
     }
 
-    const filter = { isActive: true };
+    const where = { isActive: true };
     if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.name = { $regex: escaped, $options: 'i' };
+      where.name = { contains: search, mode: 'insensitive' };
     }
     if (category) {
-      filter.category = category;
+      where.category = category;
     }
 
     const [items, total] = await Promise.all([
-      Product.find(filter)
-        .skip((pageNum - 1) * limitNum)
-        .limit(limitNum)
-        .sort({ createdAt: -1 }),
-      Product.countDocuments(filter),
+      prisma.product.findMany({
+        where,
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.product.count({ where }),
     ]);
 
     const result = {
@@ -41,7 +41,6 @@ export async function listProducts(req, res, next) {
       },
     };
 
-    // Cache the result
     await productCache.setProductList(req.query, result);
 
     res.json({ success: true, ...result });
@@ -54,18 +53,15 @@ export async function getProduct(req, res, next) {
   try {
     const { id } = req.params;
 
-    // Try to get from cache first
     let product = await productCache.getProduct(id);
 
     if (!product) {
-      // Cache miss - get from database
-      product = await Product.findById(id);
+      product = await prisma.product.findUnique({ where: { id } });
 
       if (!product || !product.isActive) {
         throw new AppError('Product not found', 404);
       }
 
-      // Cache the result
       await productCache.setProduct(id, product);
     }
 
@@ -79,18 +75,17 @@ export async function createProduct(req, res, next) {
   try {
     const { name, description, price, category, brand } = req.body;
 
-    const product = new Product({
-      name,
-      description,
-      price,
-      category,
-      brand,
-      imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined
+    const product = await prisma.product.create({
+      data: {
+        name,
+        description,
+        price: Number(price),
+        category,
+        brand,
+        imageUrl: req.file ? `/uploads/${req.file.filename}` : null
+      }
     });
 
-    await product.save();
-
-    // Invalidate product list caches
     await productCache.invalidateProductLists();
 
     res.status(201).json({ success: true, product });
@@ -103,26 +98,28 @@ export async function updateProduct(req, res, next) {
   try {
     const { id } = req.params;
     const { name, description, price, category, brand } = req.body;
-    const updates = {
-      name,
-      description,
-      price,
-      category,
-      brand
-    };
-    if (req.file) {
-      updates.imageUrl = `/uploads/${req.file.filename}`;
-    }
-    const product = await Product.findByIdAndUpdate(id, updates, { new: true });
-    if (!product) {
+    
+    const data = {};
+    if (name) data.name = name;
+    if (description) data.description = description;
+    if (price !== undefined) data.price = Number(price);
+    if (category !== undefined) data.category = category;
+    if (brand !== undefined) data.brand = brand;
+    if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+
+    try {
+      const product = await prisma.product.update({
+        where: { id },
+        data,
+      });
+
+      await productCache.invalidateProduct(id);
+      await productCache.invalidateProductLists();
+
+      res.json({ success: true, product });
+    } catch (e) {
       throw new AppError('Product not found', 404);
     }
-
-    // Invalidate caches
-    await productCache.invalidateProduct(id);
-    await productCache.invalidateProductLists();
-
-    res.json({ success: true, product });
   } catch (err) {
     next(err);
   }
@@ -131,12 +128,16 @@ export async function updateProduct(req, res, next) {
 export async function deleteProduct(req, res, next) {
   try {
     const { id } = req.params;
-    const product = await Product.findByIdAndUpdate(id, { isActive: false }, { new: true });
-    if (!product) {
+    
+    try {
+      await prisma.product.update({
+        where: { id },
+        data: { isActive: false }
+      });
+    } catch (e) {
       throw new AppError('Product not found', 404);
     }
 
-    // Invalidate caches
     await productCache.invalidateProduct(id);
     await productCache.invalidateProductLists();
 

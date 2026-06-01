@@ -1,24 +1,22 @@
-import { Order } from '../order/order.model.js';
-import { User } from '../user/user.model.js';
-import { Product } from '../product/product.model.js';
+import { prisma } from '../../config/db.prisma.js';
 
 export async function getStats(req, res, next) {
   try {
     const [
       totalOrders,
-      revenueResult,
+      revenueAgg,
       totalUsers,
       totalProducts
     ] = await Promise.all([
-      Order.countDocuments(),
-      Order.aggregate([
-        { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
-      ]),
-      User.countDocuments(),
-      Product.countDocuments({ isActive: true })
+      prisma.order.count(),
+      prisma.order.aggregate({
+        _sum: { totalAmount: true }
+      }),
+      prisma.user.count(),
+      prisma.product.count({ where: { isActive: true } })
     ]);
 
-    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    const totalRevenue = revenueAgg._sum.totalAmount || 0;
 
     res.json({
       success: true,

@@ -3,7 +3,7 @@ import { sendMail } from '../../config/mailer.js';
 import { generateRawToken, hashToken, verifyTokenHash } from '../../core/utils/token.js';
 import { verificationEmail, welcomeEmail, adminPendingApprovalEmail } from '../../core/utils/emailTemplates.js';
 import { logVerificationEvent } from '../../core/utils/auditLog.js';
-import { User } from '../user/user.model.js';
+import { prisma } from '../../config/db.prisma.js';
 import { AppError } from '../../core/errors/AppError.js';
 import { logger } from '../../core/utils/logger.js';
 
@@ -21,33 +21,37 @@ export async function issueVerificationToken(user, ip, userAgent) {
   const rawToken = generateRawToken();
   const tokenHash = hashToken(rawToken);
   const expiresAt = new Date(Date.now() + env.verificationTokenTtlMs);
-  const newVersion = (user.verificationTokenVersion ?? 0) + 1; // invalidates old tokens
+  const newVersion = (user.verificationTokenVersion ?? 0) + 1;
 
-  user.verificationToken = tokenHash;
-  user.verificationTokenExpiresAt = expiresAt;
-  user.verificationTokenVersion = newVersion;
-  await user.save();
+  user = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      verificationToken: tokenHash,
+      verificationTokenExpiresAt: expiresAt,
+      verificationTokenVersion: newVersion,
+    }
+  });
 
-  const verifyUrl = buildVerifyUrl(user._id, rawToken, newVersion);
+  const verifyUrl = buildVerifyUrl(user.id, rawToken, newVersion);
   const { subject, html, text } = verificationEmail(user.name, verifyUrl);
   await sendMail({ to: user.email, subject, html, text });
 
   await logVerificationEvent({
-    userId: user._id.toString(),
+    userId: user.id.toString(),
     event: 'token_issued',
     ip,
     userAgent,
     metadata: { expiresAt },
   });
 
-  logger.info(`[Verification] Token issued for user ${user._id}`);
+  logger.info(`[Verification] Token issued for user ${user.id}`);
 }
 
 export async function consumeVerificationToken(rawToken, userId, version, ip, userAgent) {
-  const user = await User.findById(userId);
+  let user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.verificationToken) {
     if (user?.emailVerified) {
-      return user; // idempotent
+      return user; 
     }
     await logVerificationEvent({
       userId: userId ?? 'unknown',
@@ -63,7 +67,7 @@ export async function consumeVerificationToken(rawToken, userId, version, ip, us
 
   if (Number(version) !== user.verificationTokenVersion) {
     await logVerificationEvent({
-      userId: user._id.toString(),
+      userId: user.id.toString(),
       event: 'replayed',
       ip,
       userAgent,
@@ -74,7 +78,7 @@ export async function consumeVerificationToken(rawToken, userId, version, ip, us
 
   if (user.verificationTokenExpiresAt < new Date()) {
     await logVerificationEvent({
-      userId: user._id.toString(),
+      userId: user.id.toString(),
       event: 'expired',
       ip,
       userAgent,
@@ -82,9 +86,9 @@ export async function consumeVerificationToken(rawToken, userId, version, ip, us
     throw new AppError('Verification link has expired. Please request a new one.', 400);
   }
 
-  if (!verifyTokenHash(rawToken, user.verificationToken)) { // constant-time comparison
+  if (!verifyTokenHash(rawToken, user.verificationToken)) {
     await logVerificationEvent({
-      userId: user._id.toString(),
+      userId: user.id.toString(),
       event: 'replayed',
       ip,
       userAgent,
@@ -93,55 +97,61 @@ export async function consumeVerificationToken(rawToken, userId, version, ip, us
     throw new AppError('Invalid verification link', 400);
   }
 
-  user.emailVerified = true;
-  user.verificationToken = null;
-  user.verificationTokenExpiresAt = null;
-  await user.save();
+  user = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerified: true,
+      verificationToken: null,
+      verificationTokenExpiresAt: null,
+    }
+  });
 
   const { subject, html, text } = welcomeEmail(user.name);
   sendMail({ to: user.email, subject, html, text });
 
   await logVerificationEvent({
-    userId: user._id.toString(),
+    userId: user.id.toString(),
     event: 'verified',
     ip,
     userAgent,
   });
 
-  logger.info(`[Verification] User ${user._id} successfully verified`);
+  logger.info(`[Verification] User ${user.id} successfully verified`);
   return user;
 }
 
 export async function resendVerification(email, ip, userAgent) {
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
   if (!user) {
     logger.warn(`[Verification] Resend requested for unknown email (ip: ${ip})`);
-    return; // silently return to prevent email enumeration
+    return;
   }
 
   if (user.emailVerified) {
-    logger.info(`[Verification] Resend requested for already-verified user ${user._id}`);
-    return; // silently return
+    logger.info(`[Verification] Resend requested for already-verified user ${user.id}`);
+    return;
   }
 
   await issueVerificationToken(user, ip, userAgent);
 }
 
 export async function adminApproveUser(userId, adminId, ip) {
-  const user = await User.findById(userId);
+  let user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError('User not found', 404);
 
-  user.adminApproved = true;
-  await user.save();
+  user = await prisma.user.update({
+    where: { id: user.id },
+    data: { adminApproved: true }
+  });
 
   await logVerificationEvent({
-    userId: user._id.toString(),
+    userId: user.id.toString(),
     event: 'admin_approved',
     ip,
     metadata: { approvedBy: adminId },
   });
 
-  logger.info(`[Verification] User ${user._id} approved by admin ${adminId}`);
+  logger.info(`[Verification] User ${user.id} approved by admin ${adminId}`);
   return user;
 }
