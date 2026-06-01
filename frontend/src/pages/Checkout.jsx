@@ -58,8 +58,8 @@ function CheckoutForm() {
     setLoading(true);
 
     try {
-      const intentRes = await api.post('/payments/intent', { amount: cartTotal, currency: 'usd' });
-      const { clientSecret, paymentRecordId, paymentIntentId } = intentRes.data;
+      const intentRes = await api.post('/payments/intent', { currency: 'usd' });
+      const { clientSecret } = intentRes.data;
 
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -79,17 +79,7 @@ function CheckoutForm() {
         throw new Error(result.error.message);
       }
 
-      await api.post('/orders', {
-        items: items.map((i) => ({
-          product: i.productId?._id || i.productId || i._id,
-          quantity: i.quantity || 1,
-          price: i.productId?.price || i.price || 0
-        })),
-        totalAmount: cartTotal,
-        paymentId: paymentIntentId,
-        paymentRecordId
-      });
-
+      // Order creation is now securely handled by the backend Stripe Webhook.
       await clearCart();
       setSuccess(true);
     } catch (err) {

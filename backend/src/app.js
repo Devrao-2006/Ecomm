@@ -22,6 +22,7 @@ import cartRoutes from './modules/cart/cart.routes.js';
 import orderRoutes from './modules/order/order.routes.js';
 import paymentRoutes from './modules/payment/payment.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import webhookRoutes from './modules/payment/webhook.routes.js';
 
 const app = express();
 
@@ -33,6 +34,11 @@ app.use(
   })
 );
 app.use(morgan('dev'));
+
+// Stripe webhooks require the raw body to verify signatures.
+// Must be mounted before express.json()
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
