@@ -1,6 +1,7 @@
 import { prisma } from '../../config/db.prisma.js';
 import { AppError } from '../../core/errors/AppError.js';
 import * as productCache from './product.cache.js';
+import { syncProductStockToRedis } from './inventory.service.js';
 
 export async function listProducts(req, res, next) {
   try {
@@ -13,7 +14,7 @@ export async function listProducts(req, res, next) {
       return res.json({ success: true, ...cachedData });
     }
 
-    const where = { isActive: true };
+    const where = { isActive: true, status: 'ACTIVE' };
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
     }
@@ -73,20 +74,24 @@ export async function getProduct(req, res, next) {
 
 export async function createProduct(req, res, next) {
   try {
-    const { name, description, price, category, brand } = req.body;
+    const { sku, name, description, price, category, brand, stock = 0 } = req.body;
 
     const product = await prisma.product.create({
       data: {
+        sku: sku || undefined,
         name,
         description,
         price: Number(price),
+        stock: Number(stock),
         category,
         brand,
         imageUrl: req.file ? `/uploads/${req.file.filename}` : null
       }
     });
 
+    // Invalidate list caches and sync initial stock to Redis
     await productCache.invalidateProductLists();
+    await syncProductStockToRedis(product.id);
 
     res.status(201).json({ success: true, product });
   } catch (err) {
@@ -97,7 +102,7 @@ export async function createProduct(req, res, next) {
 export async function updateProduct(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, description, price, category, brand } = req.body;
+    const { name, description, price, category, brand, stock, status } = req.body;
     
     const data = {};
     if (name) data.name = name;
@@ -105,6 +110,8 @@ export async function updateProduct(req, res, next) {
     if (price !== undefined) data.price = Number(price);
     if (category !== undefined) data.category = category;
     if (brand !== undefined) data.brand = brand;
+    if (stock !== undefined) data.stock = Number(stock);
+    if (status !== undefined) data.status = status;
     if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
 
     try {
@@ -115,6 +122,10 @@ export async function updateProduct(req, res, next) {
 
       await productCache.invalidateProduct(id);
       await productCache.invalidateProductLists();
+      
+      if (stock !== undefined) {
+        await syncProductStockToRedis(product.id);
+      }
 
       res.json({ success: true, product });
     } catch (e) {
@@ -132,7 +143,7 @@ export async function deleteProduct(req, res, next) {
     try {
       await prisma.product.update({
         where: { id },
-        data: { isActive: false }
+        data: { isActive: false, status: 'ARCHIVED' }
       });
     } catch (e) {
       throw new AppError('Product not found', 404);
@@ -141,7 +152,7 @@ export async function deleteProduct(req, res, next) {
     await productCache.invalidateProduct(id);
     await productCache.invalidateProductLists();
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'Product archived successfully' });
   } catch (err) {
     next(err);
   }

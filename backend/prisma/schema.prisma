@@ -7,27 +7,43 @@ datasource db {
 }
 
 model User {
-  id                         String    @id @default(uuid())
+  id                         String         @id @default(uuid())
   name                       String
-  email                      String    @unique
+  email                      String         @unique
   passwordHash               String?
-  provider                   String    @default("local")
-  roles                      String[]  @default(["user"])
+  provider                   String         @default("local")
+  roles                      String[]       @default(["user"])
   refreshToken               String?
-  emailVerified              Boolean   @default(false)
+  emailVerified              Boolean        @default(false)
   verificationToken          String?
   verificationTokenExpiresAt DateTime?
-  verificationTokenVersion   Int       @default(0)
-  adminApproved              Boolean   @default(true)
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
+  verificationTokenVersion   Int            @default(0)
+  adminApproved              Boolean        @default(true)
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
 
   carts                      Cart?
   orders                     Order[]
+  sessions                   UserSession[]
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenVersion Int      @default(1)
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Product {
   id          String   @id @default(uuid())
+  sku         String   @unique @default(uuid())
   name        String
   description String
   price       Float
@@ -36,66 +52,95 @@ model Product {
   images      String[]
   imageUrl    String?
   stock       Int      @default(0)
+  version     Int      @default(1) // Optimistic locking version
+  status      String   @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   cartItems   CartItem[]
   orderItems  OrderItem[]
+
+  @@index([sku])
+  @@index([status])
+  @@index([price])
 }
 
 model Cart {
   id        String     @id @default(uuid())
   userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
 
 model CartItem {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   cartId    String
-  cart      Cart    @relation(fields: [cartId], references: [id])
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   name      String
   price     Float
   quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([cartId])
 }
 
 model Order {
   id              String      @id @default(uuid())
   userId          String
-  user            User        @relation(fields: [userId], references: [id])
+  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   totalAmount     Float
-  status          String      @default("pending")
+  status          String      @default("pending") // pending, paid, failed, shipped, delivered, cancelled
+  idempotencyKey  String?     @unique
+  shippingAddress Json?
+  billingAddress  Json?
   paymentId       String?
   paymentRecordId Int?
   items           OrderItem[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([idempotencyKey])
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
   quantity  Int
   price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model payments {
   id                       Int            @id @default(autoincrement())
   user_id                  String
-  stripe_payment_intent_id String
+  stripe_payment_intent_id String         @unique
   amount                   Decimal
   currency                 String         @default("usd")
-  status                   String
+  status                   String         @default("pending")
   created_at               DateTime       @default(now())
+  updated_at               DateTime       @default(now()) @updatedAt
   transactions             transactions[]
+
+  @@index([stripe_payment_intent_id])
+  @@index([user_id])
+  @@index([status])
 }
 
 model transactions {
@@ -105,15 +150,25 @@ model transactions {
   type       String
   amount     Decimal
   status     String
+  raw_payload Json?
   created_at DateTime @default(now())
+
+  @@index([payment_id])
 }
 
 model audit_logs {
-  id         Int      @id @default(autoincrement())
+  id         String   @id @default(uuid())
   user_id    String?
   action     String
+  resource   String?
+  resource_id String?
   details    Json?
+  ip_address String?
   created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([action])
+  @@index([created_at])
 }
 
 model verification_events {
